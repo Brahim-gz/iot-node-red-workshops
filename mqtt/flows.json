@@ -1,0 +1,304 @@
+[
+    {
+        "id": "4c6709ab212fdafa",
+        "type": "inject",
+        "z": "f0aa70aacee81b0f",
+        "name": "Zone Alpha",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "2",
+        "crontab": "",
+        "once": false,
+        "onceDelay": "",
+        "topic": "",
+        "payload": "",
+        "payloadType": "str",
+        "x": 170,
+        "y": 80,
+        "wires": [
+            [
+                "aabe6632139e55ab"
+            ]
+        ]
+    },
+    {
+        "id": "aabe6632139e55ab",
+        "type": "function",
+        "z": "f0aa70aacee81b0f",
+        "name": "Generate Alpha Data",
+        "func": "msg.topic = \"zone/alpha/data\";\nmsg.payload = {\n    zone: \"alpha\",\n    waste_level: Math.floor(Math.random()*100),\n    generation_rate: Math.random()*10\n};\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 400,
+        "y": 80,
+        "wires": [
+            [
+                "b14988cbd519c022"
+            ]
+        ]
+    },
+    {
+        "id": "999dfe15d348b718",
+        "type": "inject",
+        "z": "f0aa70aacee81b0f",
+        "name": "Zone Beta",
+        "repeat": "2",
+        "x": 170,
+        "y": 160,
+        "wires": [
+            [
+                "6815d86b195938c8"
+            ]
+        ]
+    },
+    {
+        "id": "6815d86b195938c8",
+        "type": "function",
+        "z": "f0aa70aacee81b0f",
+        "name": "Generate Beta Data",
+        "func": "msg.topic = \"zone/beta/data\";\nmsg.payload = {\n    zone: \"beta\",\n    waste_level: Math.floor(Math.random()*100),\n    generation_rate: Math.random()*10\n};\nreturn msg;",
+        "outputs": 1,
+        "x": 400,
+        "y": 160,
+        "wires": [
+            [
+                "b14988cbd519c022"
+            ]
+        ]
+    },
+    {
+        "id": "b14988cbd519c022",
+        "type": "mqtt out",
+        "z": "f0aa70aacee81b0f",
+        "name": "",
+        "topic": "",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "1cce82708e23ea2d",
+        "x": 670,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "bc7c013081fa9c48",
+        "type": "function",
+        "z": "f0aa70aacee81b0f",
+        "name": "Decision Engine",
+        "func": "let d = msg.payload;\n\nif (d.waste_level > 80) {\n    return {\n        topic: \"command/truck/1\",\n        payload: {\n            action: \"COLLECT\",\n            zone: d.zone\n        }\n    };\n}\n\nreturn null;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 860,
+        "y": 280,
+        "wires": [
+            [
+                "604cd706fc7399ae"
+            ]
+        ]
+    },
+    {
+        "id": "604cd706fc7399ae",
+        "type": "mqtt out",
+        "z": "f0aa70aacee81b0f",
+        "name": "",
+        "topic": "",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "1cce82708e23ea2d",
+        "x": 1050,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "f23e29406efc8b0c",
+        "type": "mqtt in",
+        "z": "f0aa70aacee81b0f",
+        "name": "Truck Status",
+        "topic": "truck/+/status",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "1cce82708e23ea2d",
+        "nl": false,
+        "rap": false,
+        "inputs": 0,
+        "x": 670,
+        "y": 460,
+        "wires": [
+            [
+                "c03e9bdbf1103abe"
+            ]
+        ]
+    },
+    {
+        "id": "c03e9bdbf1103abe",
+        "type": "ui_text",
+        "z": "f0aa70aacee81b0f",
+        "group": "cb95bbf634231de9",
+        "width": "",
+        "height": "",
+        "name": "",
+        "label": "System Status",
+        "format": "{{msg.payload}}",
+        "layout": "",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": "",
+        "color": "#000000",
+        "x": 1060,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "truck_sim",
+        "type": "mqtt in",
+        "z": "f0aa70aacee81b0f",
+        "name": "Truck Simulator Input",
+        "topic": "command/truck/1",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "1cce82708e23ea2d",
+        "nl": false,
+        "rap": false,
+        "inputs": 0,
+        "x": 700,
+        "y": 380,
+        "wires": [
+            [
+                "truck_logic"
+            ]
+        ]
+    },
+    {
+        "id": "truck_logic",
+        "type": "function",
+        "z": "f0aa70aacee81b0f",
+        "name": "Truck Response",
+        "func": "let cmd = msg.payload;\n\nmsg.topic = \"truck/1/status\";\nmsg.payload = \"TRUCK 1 \" + cmd.action + \" in zone \" + cmd.zone;\n\nreturn msg;",
+        "outputs": 1,
+        "x": 940,
+        "y": 380,
+        "wires": [
+            [
+                "mqtt_status"
+            ]
+        ]
+    },
+    {
+        "id": "mqtt_status",
+        "type": "mqtt out",
+        "z": "f0aa70aacee81b0f",
+        "name": "Truck Status Publish",
+        "topic": "",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "1cce82708e23ea2d",
+        "x": 1180,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "54bc6143c5a781d2",
+        "type": "mqtt in",
+        "z": "f0aa70aacee81b0f",
+        "name": "Zone Listener",
+        "topic": "zone/+/data",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "1cce82708e23ea2d",
+        "nl": false,
+        "rap": false,
+        "inputs": 0,
+        "x": 670,
+        "y": 280,
+        "wires": [
+            [
+                "bc7c013081fa9c48"
+            ]
+        ]
+    },
+    {
+        "id": "1cce82708e23ea2d",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "localhost",
+        "port": 1883,
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "cb95bbf634231de9",
+        "type": "ui_group",
+        "name": "Ride Monitor",
+        "tab": "47eeb18cb29ca953",
+        "order": 1,
+        "disp": true,
+        "width": "6"
+    },
+    {
+        "id": "47eeb18cb29ca953",
+        "type": "ui_tab",
+        "name": "Dashboard",
+        "icon": "dashboard",
+        "order": 1
+    },
+    {
+        "id": "966f508783d2cf2a",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-dashboard": "3.6.5"
+        }
+    }
+]

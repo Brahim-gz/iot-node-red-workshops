@@ -1,0 +1,175 @@
+[
+    {
+        "id": "b8d0866e9d10c0fa",
+        "type": "inject",
+        "z": "ca58b63b8d47f3fd",
+        "name": "Tick",
+        "props": [],
+        "repeat": "1",
+        "once": true,
+        "onceDelay": "1",
+        "x": 590,
+        "y": 660,
+        "wires": [
+            [
+                "7e22a9ea7fe3fd66"
+            ]
+        ]
+    },
+    {
+        "id": "7e22a9ea7fe3fd66",
+        "type": "function",
+        "z": "ca58b63b8d47f3fd",
+        "name": "Simulate Sensors",
+        "func": "let speed = flow.get('speed') || 50;\nlet running = flow.get('running') || false;\n\nmsg.payload = {\n    speed: running ? speed : 0,\n    load: Math.floor(Math.random()*20),\n    vibration: Math.random()*10,\n    temperature: 20 + Math.random()*80\n};\nreturn msg;",
+        "outputs": 1,
+        "x": 850,
+        "y": 660,
+        "wires": [
+            [
+                "e91cd12fe5c02a4e"
+            ]
+        ]
+    },
+    {
+        "id": "e91cd12fe5c02a4e",
+        "type": "function",
+        "z": "ca58b63b8d47f3fd",
+        "name": "Safety Logic",
+        "func": "let p = msg.payload;\nlet status = \"SAFE\";\nlet color = \"green\";\n\nif (p.temperature > 80 || p.vibration > 7) {\n    status = \"DANGER\";\n    color = \"red\";\n} else if (p.temperature > 60 || p.vibration > 5) {\n    status = \"WARNING\";\n    color = \"orange\";\n}\n\nmsg.payload.status = status;\nmsg.payload.color = color;\nreturn msg;",
+        "outputs": 1,
+        "x": 1050,
+        "y": 660,
+        "wires": [
+            [
+                "03d316f897e88e6f",
+                "711c45f3e98f7161"
+            ]
+        ]
+    },
+    {
+        "id": "03d316f897e88e6f",
+        "type": "ui_text",
+        "z": "ca58b63b8d47f3fd",
+        "group": "cb95bbf634231de9",
+        "order": 1,
+        "width": 6,
+        "height": 1,
+        "label": "Ride Status",
+        "format": "{{msg.payload.status}}",
+        "layout": "row-spread",
+        "x": 1290,
+        "y": 720,
+        "wires": []
+    },
+    {
+        "id": "711c45f3e98f7161",
+        "type": "ui_template",
+        "z": "ca58b63b8d47f3fd",
+        "group": "cb95bbf634231de9",
+        "name": "SVG Ride",
+        "order": 2,
+        "width": "0",
+        "height": "0",
+        "format": "<div style=\"text-align:center\">\n  <svg width=\"300\" height=\"300\" viewBox=\"0 0 200 200\">\n\n    <!-- DEFINITIONS -->\n    <defs>\n      <!-- Glow -->\n      <radialGradient id=\"heatGradient\">\n        <stop offset=\"0%\" stop-color=\"yellow\" />\n        <stop offset=\"100%\" stop-color=\"red\" />\n      </radialGradient>\n\n      <!-- Blur filter -->\n      <filter id=\"blur\">\n        <feGaussianBlur stdDeviation=\"2\" />\n      </filter>\n    </defs>\n\n    <!-- ALERT PULSE -->\n    <circle id=\"alertRing\" cx=\"100\" cy=\"100\" r=\"90\" stroke=\"red\" stroke-width=\"2\" fill=\"none\" opacity=\"0\" />\n\n    <!-- WHEEL -->\n    <g id=\"wheel\">\n\n      <!-- Outer circle -->\n      <circle cx=\"100\" cy=\"100\" r=\"70\" stroke=\"black\" fill=\"none\" stroke-width=\"3\" />\n\n      <!-- SEATS -->\n      <g class=\"seat\" transform=\"rotate(0,100,100)\">\n        <circle cx=\"100\" cy=\"30\" r=\"8\" fill=\"blue\" />\n      </g>\n      <g class=\"seat\" transform=\"rotate(90,100,100)\">\n        <circle cx=\"100\" cy=\"30\" r=\"8\" fill=\"blue\" />\n      </g>\n      <g class=\"seat\" transform=\"rotate(180,100,100)\">\n        <circle cx=\"100\" cy=\"30\" r=\"8\" fill=\"blue\" />\n      </g>\n      <g class=\"seat\" transform=\"rotate(270,100,100)\">\n        <circle cx=\"100\" cy=\"30\" r=\"8\" fill=\"blue\" />\n      </g>\n\n    </g>\n\n    <!-- CORE -->\n    <circle id=\"core\" cx=\"100\" cy=\"100\" r=\"18\" fill=\"green\" />\n\n  </svg>\n</div>\n\n<style>\n  @keyframes pulse {\n    0% {\n      opacity: 0.1;\n      r: 70;\n    }\n\n    50% {\n      opacity: 0.8;\n      r: 90;\n    }\n\n    100% {\n      opacity: 0.1;\n      r: 70;\n    }\n  }\n</style>\n\n<script>\n  (function(scope) {\n\nlet angle = 0;\nlet velocity = 0;\nlet vibrationOffset = 0;\n\nfunction animate() {\n\n    const wheel = document.getElementById(\"wheel\");\n\n    // Apply vibration\n    let shakeX = (Math.random() - 0.5) * vibrationOffset;\n    let shakeY = (Math.random() - 0.5) * vibrationOffset;\n\n    wheel.setAttribute(\"transform\",\n        `translate(${shakeX},${shakeY}) rotate(${angle},100,100)`);\n\n    angle += velocity;\n\n    requestAnimationFrame(animate);\n}\n\nanimate();\n\nscope.$watch('msg', function(msg) {\n    if (!msg) return;\n\n    let speed = msg.payload.speed;\n    let temp = msg.payload.temperature;\n    let vib = msg.payload.vibration;\n    let status = msg.payload.status;\n\n    // inertia\n    velocity += (speed * 0.05 - velocity) * 0.1;\n\n    // heat glow\n    let core = document.getElementById(\"core\");\n    if (temp > 70) {\n        core.setAttribute(\"fill\", \"url(#heatGradient)\");\n    } else {\n        core.setAttribute(\"fill\", \"green\");\n    }\n\n    // vibration effect\n    vibrationOffset = vib;\n\n    // alert pulse\n    let ring = document.getElementById(\"alertRing\");\n    if (status === \"DANGER\") {\n        ring.style.animation = \"pulse 1s infinite\";\n    } else {\n        ring.style.animation = \"none\";\n        ring.setAttribute(\"opacity\", \"0\");\n    }\n\n});\n})(scope);\n</script>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": false,
+        "templateScope": "local",
+        "className": "",
+        "x": 1300,
+        "y": 620,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "8c0c0ec9110bb530",
+        "type": "ui_slider",
+        "z": "ca58b63b8d47f3fd",
+        "name": "Speed Control",
+        "label": "Speed",
+        "group": "cb95bbf634231de9",
+        "order": 3,
+        "width": 6,
+        "height": 1,
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "x": 920,
+        "y": 480,
+        "wires": [
+            [
+                "d4b2ef054cea81da"
+            ]
+        ]
+    },
+    {
+        "id": "d4b2ef054cea81da",
+        "type": "function",
+        "z": "ca58b63b8d47f3fd",
+        "name": "Set Speed",
+        "func": "flow.set('speed', msg.payload);\nreturn msg;",
+        "outputs": 1,
+        "x": 1270,
+        "y": 480,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "eb9670d35a29f926",
+        "type": "ui_button",
+        "z": "ca58b63b8d47f3fd",
+        "name": "Start/Stop",
+        "group": "cb95bbf634231de9",
+        "order": 4,
+        "width": 6,
+        "height": 1,
+        "label": "Start / Stop",
+        "x": 940,
+        "y": 400,
+        "wires": [
+            [
+                "23ac05aa3d873d2d"
+            ]
+        ]
+    },
+    {
+        "id": "23ac05aa3d873d2d",
+        "type": "function",
+        "z": "ca58b63b8d47f3fd",
+        "name": "Toggle Ride",
+        "func": "let running = flow.get('running') || false;\nflow.set('running', !running);\nreturn msg;",
+        "outputs": 1,
+        "x": 1250,
+        "y": 400,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "cb95bbf634231de9",
+        "type": "ui_group",
+        "name": "Ride Monitor",
+        "tab": "47eeb18cb29ca953",
+        "order": 1,
+        "disp": true,
+        "width": "6"
+    },
+    {
+        "id": "47eeb18cb29ca953",
+        "type": "ui_tab",
+        "name": "Dashboard",
+        "icon": "dashboard",
+        "order": 1
+    },
+    {
+        "id": "2c731b0eebdc8ee4",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-dashboard": "3.6.5"
+        }
+    }
+]

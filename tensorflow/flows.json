@@ -1,0 +1,102 @@
+[
+    {
+        "id": "7a4afdac690a3e96",
+        "type": "function",
+        "z": "11e80a167cab761c",
+        "name": "Format Results",
+        "func": "if (msg.topic !== \"predictions\") return null;\n\nlet preds = msg.payload || [];\n\nmsg.payload = {\n    count: preds.length,\n    list: preds.map(p =>\n        `${p.class} (${Math.round(p.score * 100)}%)`\n    )\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 840,
+        "y": 420,
+        "wires": [
+            [
+                "4ecb6ee5c89ac237"
+            ]
+        ]
+    },
+    {
+        "id": "4ecb6ee5c89ac237",
+        "type": "ui_template",
+        "z": "11e80a167cab761c",
+        "group": "aaa2f5c7e2cb759f",
+        "name": "Results",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "format": "<style>\n    :host {\n        width: 100% !important;\n        height: 80vh !important;\n        display: block;\n    }\n</style>\n\n<div style=\"\nheight:80vh;\nwidth:100%;\npadding:15px;\nbackground:#111827;\ncolor:white;\nborder-radius:12px;\n\">\n\n    <h3>Results</h3>\n\n    <div>\n        Objects detected:\n        <span style=\"background:#22c55e;padding:5px 10px;border-radius:20px;\">\n{{msg.payload.count || 0}}\n</span>\n    </div>\n\n    <div ng-repeat=\"item in msg.payload.list\" style=\"margin-top:8px;padding:8px;background:#1f2937;border-radius:8px;\">\n        {{item}}\n    </div>\n\n</div>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "className": "",
+        "x": 1160,
+        "y": 420,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "3845560175ed9baa",
+        "type": "ui_template",
+        "z": "11e80a167cab761c",
+        "group": "f008404d9a8e32ed",
+        "name": "Image Upload",
+        "order": 1,
+        "width": "16",
+        "height": "16",
+        "format": "<style>\n    .container {\n        display: flex;\n        flex-direction: column;\n        gap: 10px;\n    }\n\n    canvas {\n        width: 100%;\n        border: 1px solid #ddd;\n        border-radius: 10px;\n    }\n\n    label {\n        padding: 10px;\n        background: #1976d2;\n        color: white;\n        border-radius: 8px;\n        cursor: pointer;\n        display: inline-block;\n        width: fit-content;\n    }\n</style>\n\n<div class=\"container\">\n\n    <h3>Upload Image</h3>\n\n    <label>\n    Choose Image\n    <input type=\"file\" id=\"fileInput\" style=\"display:none\">\n  </label>\n\n    <canvas id=\"canvas\"></canvas>\n\n</div>\n\n<script src=\"https://cdn.jsdelivr.net/npm/@tensorflow/tfjs\"></script>\n<script src=\"https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd\"></script>\n\n<script>\n    (function(scope){\n\nlet model = null;\ncocoSsd.load().then(m => model = m);\n\nconst input = document.getElementById(\"fileInput\");\nconst canvas = document.getElementById(\"canvas\");\nconst ctx = canvas.getContext(\"2d\");\n\ninput.onchange = async (e) => {\n\n  const file = e.target.files[0];\n  if(!file || !model) return;\n\n  const img = new Image();\n\n  img.onload = async () => {\n\n    canvas.width = canvas.clientWidth;\n    canvas.height = 500;\n\n    ctx.clearRect(0,0,canvas.width,canvas.height);\n    ctx.drawImage(img,0,0,canvas.width,canvas.height);\n\n    const preds = await model.detect(canvas);\n\n    preds.forEach(p => {\n      const [x,y,w,h] = p.bbox;\n\n      ctx.strokeStyle = \"#00E676\";\n      ctx.lineWidth = 2;\n      ctx.strokeRect(x,y,w,h);\n\n      ctx.fillStyle = \"#00E676\";\n      ctx.font = \"14px Arial\";\n      ctx.fillText(\n        `${p.class} ${Math.round(p.score*100)}%`,\n        x,\n        y > 10 ? y - 5 : 10\n      );\n    });\n\n    scope.send({\n      topic: \"predictions\",\n      payload: preds\n    });\n\n  };\n\n  img.src = URL.createObjectURL(file);\n};\n\n})(scope);\n</script>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": false,
+        "templateScope": "local",
+        "className": "",
+        "x": 540,
+        "y": 420,
+        "wires": [
+            [
+                "7a4afdac690a3e96"
+            ]
+        ]
+    },
+    {
+        "id": "aaa2f5c7e2cb759f",
+        "type": "ui_group",
+        "name": "Results",
+        "tab": "b25df78eb3b08b43",
+        "order": 2,
+        "disp": true,
+        "width": "16",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "f008404d9a8e32ed",
+        "type": "ui_group",
+        "name": "Upload Image",
+        "tab": "b25df78eb3b08b43",
+        "order": 1,
+        "disp": true,
+        "width": "16",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "b25df78eb3b08b43",
+        "type": "ui_tab",
+        "name": "AI Vision",
+        "icon": "dashboard"
+    },
+    {
+        "id": "c100dff9ee98b737",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-dashboard": "3.6.5"
+        }
+    }
+]
